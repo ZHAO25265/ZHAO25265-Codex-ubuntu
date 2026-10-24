@@ -29,5 +29,12 @@ done
 [[ -f "${INSTALL_DIR}/NOTICE.md" ]]
 [[ -f "${HOME}/.local/share/applications/codex-plus-plus-launcher.desktop" ]]
 [[ -f "${HOME}/.local/share/applications/codex-plus-plus-manager.desktop" ]]
+[[ -f "${HOME}/.local/share/icons/hicolor/128x128/apps/codex-plus-plus.png" ]]
+[[ -f "${HOME}/.local/share/icons/hicolor/128x128/apps/codex-plus-plus-manager.png" ]]
+
+if command -v desktop-file-validate >/dev/null 2>&1; then
+  desktop-file-validate "${HOME}/.local/share/applications/codex-plus-plus-launcher.desktop"
+  desktop-file-validate "${HOME}/.local/share/applications/codex-plus-plus-manager.desktop"
+fi
 
 echo "Codex++ ${UPSTREAM_VERSION} installation checks passed."
