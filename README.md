@@ -33,12 +33,17 @@ bash scripts/build-ubuntu.sh
 
 构建脚本会：
 
-1. 下载并校验上游 `v1.5.0` 源码归档；
-2. 构建隔离的 Ubuntu Docker 编译环境；
-3. 编译 Codex++ launcher 和 manager；
-4. 将构建目录保留在本地 `build/`，不会提交到 Git。
+1. 下载并校验上游 `v1.5.0` 源码归档（支持断点安全的临时文件下载与强制 SHA-256 校验）；
+2. 自动按序应用 `patches/<version>/*.patch` 中的 Ubuntu 修复补丁（包含切换 API 供应商后无 ChatGPT OAuth 登录态时避免清空 `~/.codex/auth.json` 导致进入登录页的修复）；
+3. 构建隔离的 Ubuntu Docker 编译环境并复用 `.cache/cargo-home` 依赖缓存；
+4. 编译 Codex++ launcher 和 manager，并默认运行核心配置与供应商切换回归测试；
+5. 将构建目录保留在本地 `build/`，不会提交到 Git。
 
-如需构建其他上游版本，请同时检查对应版本的许可证、第三方声明和兼容性：
+可选构建环境变量：
+
+- `CARGO_REGISTRY_MIRROR`：默认使用 `sparse+https://rsproxy.cn/index/`，设为空字符串（`CARGO_REGISTRY_MIRROR=""`）可直连 `crates.io`；
+- `CODEXPP_RUN_TESTS`：默认为 `1`，设为 `0` 可跳过容器内回归测试；
+- `UPSTREAM_VERSION` / `UPSTREAM_SHA256`：如需构建其他上游版本，必须同时提供 `UPSTREAM_SHA256` 并检查对应版本的许可证、第三方声明和补丁兼容性：
 
 ```bash
 UPSTREAM_VERSION=1.5.0 bash scripts/build-ubuntu.sh
@@ -55,6 +60,8 @@ bash scripts/install-ubuntu.sh
 - `~/.local/bin/codex-plus-plus`
 - `~/.local/bin/codex-plus-plus-manager`
 - `~/.local/opt/codex-plus-plus/<version>/`
+
+重复运行 `bash scripts/install-ubuntu.sh` 会自动更新已指向 `~/.local/opt/codex-plus-plus/` 的软链接（若目标位置存在非 Codex++ 的同名文件，脚本会拒绝覆盖，可通过 `FORCE_INSTALL=1` 强制替换）。
 
 如果官方应用不在默认位置：
 

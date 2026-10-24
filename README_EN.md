@@ -40,12 +40,14 @@ bash scripts/build-ubuntu.sh
 The build:
 
 1. Downloads and verifies the upstream `v1.5.0` source archive;
-2. Builds an isolated Ubuntu Docker image;
-3. Compiles the launcher and manager;
-4. Keeps generated files under local `build/`, which is ignored by Git.
+2. Applies versioned patches from `patches/<version>/*.patch` (including the fix preventing `~/.codex/auth.json` from being emptied when switching API providers without a ChatGPT OAuth login);
+3. Builds an isolated Ubuntu Docker image and caches Cargo dependencies under `.cache/cargo-home`;
+4. Compiles the launcher and manager and runs core relay configuration/switching regression tests (`CODEXPP_RUN_TESTS=1` by default);
+5. Keeps generated files under local `build/`, which is ignored by Git.
 
-When changing `UPSTREAM_VERSION`, review the corresponding upstream license,
-third-party notices, and compatibility before redistribution.
+When changing `UPSTREAM_VERSION`, provide `UPSTREAM_SHA256` and review the
+corresponding upstream license, third-party notices, and patch compatibility
+before redistribution.
 
 ## Install
 
@@ -58,6 +60,8 @@ The default install locations are:
 - `~/.local/bin/codex-plus-plus`
 - `~/.local/bin/codex-plus-plus-manager`
 - `~/.local/opt/codex-plus-plus/<version>/`
+
+Re-running `bash scripts/install-ubuntu.sh` safely updates existing symlinks managed under `~/.local/opt/codex-plus-plus/` (while refusing to overwrite unrelated files unless `FORCE_INSTALL=1` is set).
 
 For a non-default official application path:
 

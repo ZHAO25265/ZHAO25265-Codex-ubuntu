@@ -6,7 +6,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 UPSTREAM_VERSION="${UPSTREAM_VERSION:-1.5.0}"
 CODEX_APP_DIR="${CODEX_APP_DIR:-/usr/lib/chatgpt}"
 UPSTREAM_DIR="${ROOT_DIR}/build/upstream"
-INSTALL_DIR="${HOME}/.local/opt/codex-plus-plus/${UPSTREAM_VERSION}"
+INSTALL_ROOT="${HOME}/.local/opt/codex-plus-plus"
+INSTALL_DIR="${INSTALL_ROOT}/${UPSTREAM_VERSION}"
 BIN_DIR="${HOME}/.local/bin"
 APPLICATION_DIR="${HOME}/.local/share/applications"
 BACKUP_DIR="${HOME}/.local/state/codex-plus-plus/backups/$(date +%Y%m%d-%H%M%S)"
@@ -29,8 +30,15 @@ BACKUP_DIR="${HOME}/.local/state/codex-plus-plus/backups/$(date +%Y%m%d-%H%M%S)"
 }
 
 for binary in codex-plus-plus codex-plus-plus-manager; do
-  if [[ -e "${BIN_DIR}/${binary}" || -L "${BIN_DIR}/${binary}" ]]; then
-    echo "Refusing to overwrite existing ${BIN_DIR}/${binary}" >&2
+  target_link="${BIN_DIR}/${binary}"
+  if [[ -L "${target_link}" ]]; then
+    existing_target="$(readlink "${target_link}")"
+    if [[ "${existing_target}" != "${INSTALL_ROOT}/"* && "${FORCE_INSTALL:-0}" != "1" ]]; then
+      echo "Refusing to overwrite non-Codex++ symlink ${target_link} -> ${existing_target} (set FORCE_INSTALL=1 to override)." >&2
+      exit 1
+    fi
+  elif [[ -e "${target_link}" && "${FORCE_INSTALL:-0}" != "1" ]]; then
+    echo "Refusing to overwrite existing ${target_link} (set FORCE_INSTALL=1 to override)." >&2
     exit 1
   fi
 done
@@ -51,8 +59,18 @@ install -m755 "${UPSTREAM_DIR}/target/release/codex-plus-plus" \
 install -m755 "${UPSTREAM_DIR}/target/release/codex-plus-plus-manager" \
   "${INSTALL_DIR}/codex-plus-plus-manager"
 install -m644 "${UPSTREAM_DIR}/LICENSE" "${INSTALL_DIR}/UPSTREAM-LICENSE"
-ln -s "${INSTALL_DIR}/codex-plus-plus" "${BIN_DIR}/codex-plus-plus"
-ln -s "${INSTALL_DIR}/codex-plus-plus-manager" "${BIN_DIR}/codex-plus-plus-manager"
+install -m644 "${ROOT_DIR}/NOTICE.md" "${INSTALL_DIR}/NOTICE.md"
+if [[ -d "${ROOT_DIR}/patches/${UPSTREAM_VERSION}" ]]; then
+  shopt -s nullglob
+  patch_files=("${ROOT_DIR}/patches/${UPSTREAM_VERSION}"/*.patch)
+  if (( ${#patch_files[@]} > 0 )); then
+    mkdir -p "${INSTALL_DIR}/patches"
+    install -m644 "${patch_files[@]}" "${INSTALL_DIR}/patches/"
+  fi
+  shopt -u nullglob
+fi
+ln -sfn "${INSTALL_DIR}/codex-plus-plus" "${BIN_DIR}/codex-plus-plus"
+ln -sfn "${INSTALL_DIR}/codex-plus-plus-manager" "${BIN_DIR}/codex-plus-plus-manager"
 
 cat > "${APPLICATION_DIR}/codex-plus-plus-launcher.desktop" <<EOF
 [Desktop Entry]
